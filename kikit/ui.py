@@ -5,6 +5,11 @@ from kikit.present import boardpage
 from kikit.modify import references
 import sys
 
+def validateSpaceRadius(space, radius):
+    if space < 2 * radius:
+        raise RuntimeError(f"Fillet radius ({radius} mm) has to be greater than " \
+                           f"space between boards ({space} mm)")
+
 @click.group()
 def panelize():
     """
@@ -89,6 +94,7 @@ def grid(input, output, space, gridsize, panelsize, tabwidth, tabheight, vcuts,
         else:
             frame = False
             oht, ovt = 0, 0
+        validateSpaceRadius(space, radius)
         tolerance = fromMm(tolerance)
         psize, cuts = panel.makeGrid(input, rows, cols, wxPointMM(50, 50),
             sourceArea=sourcearea, tolerance=tolerance,
@@ -103,7 +109,6 @@ def grid(input, output, space, gridsize, panelsize, tabwidth, tabheight, vcuts,
             cuts += cut
             tabs += tab
         panel.appendSubstrate(tabs)
-        panel.addMillFillets(fromMm(radius))
         if vcuts:
             panel.makeVCuts(cuts, vcutcurves)
         if frame:
@@ -115,6 +120,8 @@ def grid(input, output, space, gridsize, panelsize, tabwidth, tabheight, vcuts,
         if mousebites[0]:
             drill, spacing, offset = mousebites
             panel.makeMouseBites(cuts, fromMm(drill), fromMm(spacing), fromMm(offset))
+        if frame:
+            panel.makeFrame(psize, fromMm(w), fromMm(h), fromMm(space))
         panel.addMillFillets(fromMm(radius))
         panel.save(output)
     except Exception as e:
@@ -169,6 +176,7 @@ def tightgrid(input, output, space, gridsize, panelsize, tabwidth, tabheight, vc
         else:
             sourcearea = None
         w, h = panelsize
+        validateSpaceRadius(space, radius)
         if 2 * radius > 1.1 * slotwidth:
             raise RuntimeError("The slot is too narrow for given radius (it has to be at least 10% larger")
         tolerance = fromMm(tolerance)
